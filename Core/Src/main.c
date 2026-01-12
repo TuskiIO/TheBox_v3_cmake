@@ -21,7 +21,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "modbus_rtu.h"
+#include "mag_sensor.h"
+#include "ICM42688P.h"
+#include "usb_comm.h"
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+#include <string.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +56,17 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
 
 /* USER CODE BEGIN PV */
+// CRC句柄（在stm32f7xx_hal_msp.c中初始化）
+extern CRC_HandleTypeDef hcrc;
+// TIM句柄（用于delay_us，需要在CubeMX中配置）
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim4;
+
+// USB通信相关标志
+volatile uint8_t usb_get_sensor_data_flag = 1;
+volatile uint8_t usb_set_sensor_cfg_flag = 0;
+volatile uint8_t usb_get_sensor_cfg_flag = 0;
+uint8_t usb_to_485_buf[256];
 
 /* USER CODE END PV */
 
@@ -102,6 +120,45 @@ int main(void)
   MX_USB_OTG_HS_PCD_Init();
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
+  // 初始化USB设备
+  MX_USB_DEVICE_Init();
+
+  // 初始化USB通信层
+  usb_comm_init();
+
+  // 使能传感器电源
+  HAL_GPIO_WritePin(SENS_PWR_EN_GPIO_Port, SENS_PWR_EN_Pin, GPIO_PIN_SET);
+
+  // 等待传感器上电稳定
+  HAL_Delay(1000);
+
+  // 初始化时间戳
+  mcu_timestamp = 0;
+  TIM2_time_s = 0;
+  sensor_pkg_cnt = 0;
+  sensor_err_pkg_cnt = 0;
+
+  // 检查已有的SlaveID，配置slaveID_map[8]
+  HAL_StatusTypeDef state = Check_MagSensors_SlaveID();
+
+  // 初始化新接入的传感器
+  state = Get_MagSensors_Plugged();
+  while(state == HAL_OK) {
+    state = Get_MagSensors_Plugged();
+  };
+
+  // 更新配置
+  for(uint8_t i = 0; i < sensor_num; i++) {
+    Get_MagSensor_Config(&mag_sensor[i]);
+    HAL_Delay(1);
+  }
+
+  // 初始化IMU
+  ICM42688_Init();
+
+  // 清空rx_buf，开启DMA空闲中断接收
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buf, RX_BUF_SIZE);
+  __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 
   /* USER CODE END 2 */
 
@@ -112,6 +169,81 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    // 传感器数据采集和发送
+    if(usb_get_sensor_data_flag == 1) {
+      // 触发测量
+      Modbus_CMD60_TriggerMeasurement(MB_Broadcast_ID);
+      Update_TimeStamp();
+      HAL_Delay(5);
+
+      // 获取传感器数据
+      Get_MagSensors_Data();
+
+      // 打包并发送到USB
+      uint16_t PC_buf_size = PC_TRANS_Assemble(mcu_timestamp);
+      CDC_Transmit_HS(PC_Trans_Buff, PC_buf_size);
+    }
+
+    // 处理配置设置命令
+    if(usb_set_sensor_cfg_flag == 1) {
+      PC_Trans_Buff[0] = 0x55;
+      PC_Trans_Buff[1] = 0xaa;
+      PC_Trans_Buff[2] = 0xff;
+      if(Set_MagSensor_Config(usb_to_485_buf) == HAL_OK) {
+        memcpy(&PC_Trans_Buff[3], usb_to_485_buf, usb_to_485_buf[2] + 6);
+        uint16_t crc16 = HAL_CRC_Calculate(&hcrc, (uint32_t *)PC_Trans_Buff, usb_to_485_buf[2] + 6);
+        PC_Trans_Buff[usb_to_485_buf[2] + 6] = (crc16      ) & 0xff;
+        PC_Trans_Buff[usb_to_485_buf[2] + 7] = (crc16 >>  8) & 0xff;
+        CDC_Transmit_HS(PC_Trans_Buff, usb_to_485_buf[2] + 8);
+      } else {
+        PC_Trans_Buff[3] = 0x00;
+        PC_Trans_Buff[4] = 0x00;
+        PC_Trans_Buff[5] = 0x00;
+        uint16_t crc16 = HAL_CRC_Calculate(&hcrc, (uint32_t *)PC_Trans_Buff, 0x06);
+        PC_Trans_Buff[6] = (crc16      ) & 0xff;
+        PC_Trans_Buff[7] = (crc16 >>  8) & 0xff;
+        CDC_Transmit_HS(PC_Trans_Buff, 8);
+      }
+      usb_set_sensor_cfg_flag = 0;
+    }
+
+    // 处理配置读取命令
+    if(usb_get_sensor_cfg_flag == 1) {
+      for(uint8_t i = 0; i < sensor_num; i++) {
+        if(usb_to_485_buf[0] == mag_sensor[i].sensor_pub_cfg.mb_slave_id ||
+           usb_to_485_buf[0] == MB_Broadcast_ID) {
+          PC_Trans_Buff[0] = 0x55;
+          PC_Trans_Buff[1] = 0xaa;
+          PC_Trans_Buff[2] = 0xff;
+          if(Get_MagSensor_Config(&mag_sensor[i]) == HAL_OK) {
+            memcpy(&PC_Trans_Buff[3], (uint8_t *)&mag_sensor[i].sensor_pub_cfg, sizeof(SENSOR_Public_Config_t));
+            uint16_t crc16 = HAL_CRC_Calculate(&hcrc, (uint32_t *)PC_Trans_Buff, sizeof(SENSOR_Public_Config_t) + 3);
+            PC_Trans_Buff[sizeof(SENSOR_Public_Config_t) + 3] = (crc16      ) & 0xff;
+            PC_Trans_Buff[sizeof(SENSOR_Public_Config_t) + 4] = (crc16 >>  8) & 0xff;
+            CDC_Transmit_HS(PC_Trans_Buff, sizeof(SENSOR_Public_Config_t) + 5);
+          } else {
+            PC_Trans_Buff[3] = 0x00;
+            PC_Trans_Buff[4] = 0x00;
+            PC_Trans_Buff[5] = 0x00;
+            uint16_t crc16 = HAL_CRC_Calculate(&hcrc, (uint32_t *)PC_Trans_Buff, 0x06);
+            PC_Trans_Buff[6] = (crc16      ) & 0xff;
+            PC_Trans_Buff[7] = (crc16 >>  8) & 0xff;
+            CDC_Transmit_HS(PC_Trans_Buff, 8);
+          }
+        }
+      }
+      usb_get_sensor_cfg_flag = 0;
+    }
+
+    // LED指示灯闪烁
+    static uint16_t led_cnt = 0;
+    led_cnt++;
+    if(led_cnt > 100) {
+      HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+      led_cnt = 0;
+    }
+
+    HAL_Delay(5);
   }
   /* USER CODE END 3 */
 }

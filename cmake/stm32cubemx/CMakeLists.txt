@@ -15,6 +15,12 @@ set(MX_Include_Dirs
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Inc/Legacy
     ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F7xx/Include
     ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
+    # 移植模块头文件路径
+    ${CMAKE_SOURCE_DIR}/modbus_rtu
+    ${CMAKE_SOURCE_DIR}/ICM42688P
+    ${CMAKE_SOURCE_DIR}/usb_comm
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/Target
 )
 
 # STM32CubeMX generated application sources
@@ -25,6 +31,15 @@ set(MX_Application_Src
     ${CMAKE_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_SOURCE_DIR}/Core/Src/syscalls.c
     ${CMAKE_SOURCE_DIR}/startup_stm32f722xx.s
+    # 移植模块源文件
+    ${CMAKE_SOURCE_DIR}/modbus_rtu/modbus_rtu.c
+    ${CMAKE_SOURCE_DIR}/modbus_rtu/mag_sensor.c
+    ${CMAKE_SOURCE_DIR}/ICM42688P/ICM42688P.c
+    ${CMAKE_SOURCE_DIR}/usb_comm/usb_comm.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usbd_cdc_if.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usb_device.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/App/usbd_desc.c
+    ${CMAKE_SOURCE_DIR}/USB_DEVICE/Target/usbd_conf.c
 )
 
 # STM32 HAL/LL Drivers
@@ -51,6 +66,11 @@ set(STM32_Drivers_Src
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pcd.c
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_pcd_ex.c
     ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_usb.c
+    # 移植需要的额外HAL驱动
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_crc.c
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_crc_ex.c
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim_ex.c
 )
 
 # Drivers Midllewares
