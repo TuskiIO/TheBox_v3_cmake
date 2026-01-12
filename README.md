@@ -31,7 +31,7 @@
 | 外设 | 引脚 | 配置参数 |
 |-----|------|---------|
 | **UART4** | RS485通信 | 2Mbps, 8N1, DMA接收 |
-| **SPI3** | ICM42688P | Master模式, 4bit数据 |
+| **SPI3** | ICM42688P | Master模式, 8bit数据 |
 | **USB HS** | USB_ULPI | 480MHz高速模式 |
 | **USB FS** | USB_FS | 12MHz全速模式 |
 | **CRC** | 内部 | 硬件CRC16校验 |

@@ -19,10 +19,6 @@ set(MX_Include_Dirs
     ${CMAKE_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F7xx/Include
     ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
-    # 移植模块头文件路径
-    ${CMAKE_SOURCE_DIR}/modbus_rtu
-    ${CMAKE_SOURCE_DIR}/ICM42688P
-    ${CMAKE_SOURCE_DIR}/usb_comm
 )
 
 # STM32CubeMX generated application sources
@@ -37,11 +33,6 @@ set(MX_Application_Src
     ${CMAKE_SOURCE_DIR}/Core/Src/sysmem.c
     ${CMAKE_SOURCE_DIR}/Core/Src/syscalls.c
     ${CMAKE_SOURCE_DIR}/startup_stm32f722xx.s
-    # 移植模块源文件
-    ${CMAKE_SOURCE_DIR}/modbus_rtu/modbus_rtu.c
-    ${CMAKE_SOURCE_DIR}/modbus_rtu/mag_sensor.c
-    ${CMAKE_SOURCE_DIR}/ICM42688P/ICM42688P.c
-    ${CMAKE_SOURCE_DIR}/usb_comm/usb_comm.c
 )
 
 # STM32 HAL/LL Drivers

@@ -51,6 +51,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     modbus_rtu/modbus_rtu.c
     modbus_rtu/mag_sensor.c
     ICM42688P/ICM42688P.c
+    usb_comm/usb_comm.c
 )
 
 # Add include paths
@@ -58,6 +59,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     modbus_rtu
     ICM42688P
+    usb_comm
 )
 
 # Add project symbols (macros)
