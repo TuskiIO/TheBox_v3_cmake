@@ -6,7 +6,6 @@
 #include "usb_comm.h"
 #include "usbd_cdc_if.h"
 #include <string.h>
-#include <stdarg.h>
 #include <stdio.h>
 
 /* 私有变量 */
@@ -15,6 +14,11 @@ static int registered_callback_cnt = 0;
 
 /* 外部变量 */
 extern int host_port_open;  // 来自usbd_cdc_if.c
+
+// USB端口选择配置：设置为1使用HS，设置为0使用FS（需与usbd_cdc_if.h和main.c中保持一致）
+#ifndef USE_USB_HS
+#define USE_USB_HS  1
+#endif
 
 /**
  * @brief 初始化USB通信模块
@@ -60,7 +64,11 @@ int usb_comm_send(void *data, uint32_t data_len)
     }
 
     // 调用USB CDC发送函数
-    if (CDC_Transmit_HS((uint8_t*)data, (uint16_t)data_len) == USBD_OK) {
+    #if USE_USB_HS
+        if (CDC_Transmit_HS((uint8_t*)data, (uint16_t)data_len) == USBD_OK) {
+    #else
+        if (CDC_Transmit_FS((uint8_t*)data, (uint16_t)data_len) == USBD_OK) {
+    #endif
         return (int)data_len;
     }
 
@@ -80,27 +88,4 @@ void usb_comm_receive_handler(uint8_t *data, uint32_t data_len)
     }
 }
 
-/**
- * @brief USB printf函数
- */
-void usb_printf(const char* format, ...)
-{
-    static char char_buf[256];  // 静态缓冲区用于printf输出
-
-    if (!host_port_open) {
-        return;
-    }
-
-    va_list args;
-    va_start(args, format);
-    int len = vsnprintf(char_buf, sizeof(char_buf), format, args);
-    va_end(args);
-
-    if (len > 0) {
-        // 等待直到USB可以发送
-        while (CDC_Transmit_HS((uint8_t*)char_buf, (uint16_t)len) == USBD_BUSY) {
-            // 短暂延时
-            HAL_Delay(1);
-        }
-    }
-}
+// usb_printf函数已在usbd_cdc_if.c中实现，此处不重复定义

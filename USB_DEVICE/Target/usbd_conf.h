@@ -31,15 +31,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "main.h"
-#include "stm32h7xx.h"
-#include "stm32h7xx_hal.h"
+#include "stm32f7xx.h"
+#include "stm32f7xx_hal.h"
 
 /* USER CODE BEGIN INCLUDE */
 
 /* USER CODE END INCLUDE */
 
 /** @addtogroup USBD_OTG_DRIVER
-  * @brief Driver for Usb device.
   * @{
   */
 
@@ -88,13 +87,14 @@
   * @brief Aliases.
   * @{
   */
-/* Memory management macros make sure to use static memory allocation */
-/** Alias for memory allocation. */
 
-#define USBD_malloc         (void *)USBD_static_malloc
+/* Memory management macros */
+
+/** Alias for memory allocation. */
+#define USBD_malloc         malloc
 
 /** Alias for memory release. */
-#define USBD_free           USBD_static_free
+#define USBD_free           free
 
 /** Alias for memory set. */
 #define USBD_memset         memset
@@ -112,24 +112,24 @@
                             printf("\n");
 #else
 #define USBD_UsrLog(...)
-#endif /* (USBD_DEBUG_LEVEL > 0U) */
+#endif
 
 #if (USBD_DEBUG_LEVEL > 1)
 
-#define USBD_ErrLog(...)    printf("ERROR: ");\
+#define USBD_ErrLog(...)    printf("ERROR: ") ;\
                             printf(__VA_ARGS__);\
                             printf("\n");
 #else
 #define USBD_ErrLog(...)
-#endif /* (USBD_DEBUG_LEVEL > 1U) */
+#endif
 
 #if (USBD_DEBUG_LEVEL > 2)
-#define USBD_DbgLog(...)    printf("DEBUG : ");\
+#define USBD_DbgLog(...)    printf("DEBUG : ") ;\
                             printf(__VA_ARGS__);\
                             printf("\n");
 #else
 #define USBD_DbgLog(...)
-#endif /* (USBD_DEBUG_LEVEL > 2U) */
+#endif
 
 /**
   * @}
@@ -150,8 +150,6 @@
   */
 
 /* Exported functions -------------------------------------------------------*/
-void *USBD_static_malloc(uint32_t size);
-void USBD_static_free(void *p);
 
 /**
   * @}
@@ -170,4 +168,3 @@ void USBD_static_free(void *p);
 #endif
 
 #endif /* __USBD_CONF__H__ */
-

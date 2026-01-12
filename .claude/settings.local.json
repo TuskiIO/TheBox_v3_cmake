@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(copy /Y \"D:\\\\04_CARTIN\\\\12_MagLoc_v2_Software\\\\Box-cmake\\\\modbus_rtu\\\\*.c\" \"D:\\\\04_CARTIN\\\\15_MagSensor_v3_Software\\\\TheBox_v3_camke\\\\modbus_rtu\"\" && copy /Y \"D:04_CARTIN12_MagLoc_v2_SoftwareBox-cmakemodbus_rtu*.h\" \"D:04_CARTIN15_MagSensor_v3_SoftwareTheBox_v3_camkemodbus_rtu\"\")",
+      "Bash(copy /Y \"D:\\\\04_CARTIN\\\\12_MagLoc_v2_Software\\\\Box-cmake\\\\ICM42688P\\\\*.c\" \"D:\\\\04_CARTIN\\\\15_MagSensor_v3_Software\\\\TheBox_v3_camke\\\\ICM42688P\"\" && copy /Y \"D:04_CARTIN12_MagLoc_v2_SoftwareBox-cmakeICM42688P*.h\" \"D:04_CARTIN15_MagSensor_v3_SoftwareTheBox_v3_camkeICM42688P\"\")"
+    ]
+  }
+}

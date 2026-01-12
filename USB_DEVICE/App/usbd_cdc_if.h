@@ -52,6 +52,9 @@
 #define APP_RX_DATA_SIZE  2048
 #define APP_TX_DATA_SIZE  2048
 /* USER CODE BEGIN EXPORTED_DEFINES */
+// USB端口选择配置：设置为1使用HS，设置为0使用FS
+#define USE_USB_HS  1
+
 #define USE_USB_PRINTF  0
 /* USER CODE END EXPORTED_DEFINES */
 
@@ -91,6 +94,8 @@
   */
 
 /** CDC Interface callback. */
+extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
+/** CDC Interface callback. */
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
@@ -106,6 +111,7 @@ extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
   * @{
   */
 
+uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
