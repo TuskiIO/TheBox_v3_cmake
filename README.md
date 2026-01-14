@@ -502,6 +502,85 @@ if(usb_set_sensor_cfg_flag == 1) {
 - 调试时可关闭看门狗避免误触发
 - 如需修改超时时间，需同时调整`Reload`值和预分频系数
 
+### 8. 内存分配
+
+**芯片**: STM32F722RE
+- **FLASH**: 512KB @ 0x08000000
+- **RAM**: 256KB @ 0x20000000
+
+**内存布局**:
+```
+0x08000000                    0x20000000
+┌──────────────┐             ┌──────────────┐
+│   FLASH      │             │     RAM      │
+│   .text      │             │  .data       │
+│   (代码)     │             │  .bss        │
+│              │             │              │
+│              │             │  ┌─────────┐ │
+│              │             │  │mag_sensor│ │ 61.3KB
+│              │             │  │  [246]  │ │ @0x20004438
+│              │             │  └─────────┘ │
+│              │             │              │
+│              │             │  rx_buf/tx_buf │ 512B
+│              │             │  PC_Trans_Buff │ 1KB
+│              │             │  栈           │ 16KB
+│              │             │  堆           │ 8KB
+└──────────────┘             └──────────────┘
+```
+
+**关键数据结构内存占用**:
+
+| 数据项 | 类型 | 大小 | 地址 |
+|--------|------|------|------|
+| mag_sensor[246] | MY_SENSOR_module_t数组 | 61.3KB | 0x20004438 |
+| rx_buf | uint8_t数组 | 256B | .bss段 |
+| tx_buf | uint8_t数组 | 256B | .bss段 |
+| PC_Trans_Buff | uint8_t数组 | 1KB | .bss段 |
+| sensor_UID | 指针数组[246] | 984B | .bss段 |
+
+**单个传感器结构体** (255 bytes):
+```c
+typedef struct {
+    // 配置数据 (205 bytes)
+    SENSOR_Public_Config_t   sensor_pub_cfg;
+    MAG_Public_Config_t      mag_pub_cfg;
+    IMU_Public_Config_t      imu_pub_cfg;
+    LED_Public_Config_t      led_pub_cfg;
+    SENSOR_Private_Config_t  sensor_prv_cfg;
+    MAG_Private_Config_t     mag_prv_cfg;
+    IMU_Private_Config_t     imu_prv_cfg;
+    LED_Private_Config_t     led_prv_cfg;
+    uint16_t                 cfg_crc16;
+
+    // 只读数据 (50 bytes)
+    SENSOR_Data_t            sensor_data;    // 17 bytes
+    MAG_Data_t               mag_data;       // 40 bytes (含padding)
+    IMU_Data_t               imu_data;       // 50 bytes (含padding)
+} MY_SENSOR_module_t;
+```
+
+**内存使用估算** (RelWithDebInfo配置):
+```
+总RAM:  256KB
+已用:    ~105KB (41%)
+剩余:    ~151KB (59%)
+```
+
+**DMA缓冲区说明**:
+- STM32F722使用统一RAM架构，所有数据在0x20000000
+- 无D-Cache，DMA访问无需缓存维护
+- DMA缓冲区(rx_buf/tx_buf)直接放在.bss段
+- 与H743多RAM架构相比，F722配置更简单但性能略低
+
+**与STM32H743对比**:
+
+| 特性 | STM32F722RE | STM32H743VGT6 |
+|------|-------------|---------------|
+| RAM配置 | 单一256KB | 多区域1056KB |
+| DMA优化 | 统一RAM | 专用DMA RAM (RAM_D2) |
+| Cache | 无 | 有D-Cache需维护 |
+| mag_sensor位置 | .bss @ 0x20004438 | .bss @ 0x24000000 |
+
 ---
 
 ## 目录结构
