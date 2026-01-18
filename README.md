@@ -88,18 +88,14 @@ cmake --build build --config Debug
 
 ### 编译配置切换
 
-**USB端口切换：** 修改以下文件中的宏定义
+**USB端口切换（HS/FS）：** 只需修改`usbd_cdc_if.h`中的宏定义
 
 ```c
-// usbd_cdc_if.h (第56行)
-#define USE_USB_HS  1    // 1=USB HS, 0=USB FS
-
-// main.c (第43行)
-#define USE_USB_HS  1    // 1=USB HS, 0=USB FS
-
-// usb_comm.c (第21行)
-#define USE_USB_HS  1    // 1=USB HS, 0=USB FS
+// USB_DEVICE/App/usbd_cdc_if.h (第56行)
+#define USE_USB_HS  1    // 1=USB HS (480MHz), 0=USB FS (12MHz)
 ```
+
+所有使用USB通信的模块（main.c、usb_comm.c等）会自动使用此配置，无需重复定义。
 
 ### 内存占用
 
@@ -447,7 +443,7 @@ if(usb_set_sensor_cfg_flag == 1) {
 - **虚拟串口**: CDC类，驱动自动识别
 - **发送缓冲**: 2048字节 (APP_TX_DATA_SIZE)
 - **接收缓冲**: 2048字节 (APP_RX_DATA_SIZE)
-- **HS/FS切换**: 通过`USE_USB_HS`宏统一配置
+- **HS/FS切换**: 修改`usbd_cdc_if.h`中的`USE_USB_HS`宏（1=HS, 0=FS）
 
 ### 4. 传感器地址
 

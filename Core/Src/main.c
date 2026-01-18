@@ -39,9 +39,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-// USB端口选择配置：设置为1使用HS，设置为0使用FS（需与usbd_cdc_if.h中保持一致）
-#define USE_USB_HS  1
-
 // 看门狗功能开关：设置为1启用，设置为0禁用（默认关闭）
 #define USE_IWDG    0
 /* USER CODE END PD */
@@ -67,12 +64,6 @@ DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_uart4_tx;
 
 /* USER CODE BEGIN PV */
-// CRC句柄（在stm32f7xx_hal_msp.c中初始化）
-extern CRC_HandleTypeDef hcrc;
-// TIM句柄（用于delay_us，需要在CubeMX中配置）
-extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim4;
-
 // USB通信相关标志
 volatile uint8_t usb_get_sensor_data_flag = 1;
 volatile uint8_t usb_set_sensor_cfg_flag = 0;
@@ -144,20 +135,25 @@ int main(void)
   // 初始化USB通信层
   usb_comm_init();
 
+  // 初始化时间戳
+  mcu_timestamp = 0;
+  TIM2_time_s = 0;
+  sensor_pkg_cnt = 0;
+  sensor_err_pkg_cnt = 0;
+  static uint16_t led_cnt = 0;
+
   // 使能传感器电源
   HAL_GPIO_WritePin(SENS_PWR_EN_GPIO_Port, SENS_PWR_EN_Pin, GPIO_PIN_SET);
+
+  // 清空rx_buf，开启DMA空闲中断接收
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buf, RX_BUF_SIZE);
+  __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 
   // 等待传感器上电稳定（看门狗超时约8.2秒，1秒延时无需喂狗）
   HAL_Delay(1000);
   #if USE_IWDG
   HAL_IWDG_Refresh(&hiwdg);  // 上电延时后喂狗
   #endif
-
-  // 初始化时间戳
-  mcu_timestamp = 0;
-  TIM2_time_s = 0;
-  sensor_pkg_cnt = 0;
-  sensor_err_pkg_cnt = 0;
 
   // 检查已有的SlaveID，配置slaveID_map[8]
   HAL_StatusTypeDef state = Check_MagSensors_SlaveID();
@@ -181,10 +177,6 @@ int main(void)
   #if USE_IWDG
   HAL_IWDG_Refresh(&hiwdg);
   #endif
-
-  // 清空rx_buf，开启DMA空闲中断接收
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buf, RX_BUF_SIZE);
-  __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 
   /* USER CODE END 2 */
 
@@ -288,7 +280,6 @@ int main(void)
     }
 
     // LED指示灯闪烁
-    static uint16_t led_cnt = 0;
     led_cnt++;
     if(led_cnt > 100) {
       HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
@@ -373,10 +364,12 @@ static void MX_CRC_Init(void)
 
   /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;
-  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.Init.GeneratingPolynomial = 32771;
+  hcrc.Init.CRCLength = CRC_POLYLENGTH_16B;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_BYTE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_ENABLE;
   hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
   if (HAL_CRC_Init(&hcrc) != HAL_OK)
   {
@@ -497,7 +490,10 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
-
+  __HAL_TIM_CLEAR_IT(&htim2,TIM_IT_UPDATE);
+  __HAL_TIM_ENABLE_IT(&htim2,TIM_IT_UPDATE);
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  __HAL_TIM_ENABLE(&htim2);
   /* USER CODE END TIM2_Init 2 */
 
 }
@@ -542,7 +538,8 @@ static void MX_TIM4_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM4_Init 2 */
-
+  __HAL_TIM_SET_COUNTER(&htim4, 0);
+  __HAL_TIM_ENABLE(&htim4);
   /* USER CODE END TIM4_Init 2 */
 
 }
@@ -572,6 +569,11 @@ static void MX_UART4_Init(void)
   huart4.Init.OverSampling = UART_OVERSAMPLING_8;
   huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  // // 先初始化UART
+  // if (HAL_UART_Init(&huart4) != HAL_OK)
+  // {
+  //   Error_Handler();
+  // }
   if (HAL_RS485Ex_Init(&huart4, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
   {
     Error_Handler();
@@ -667,7 +669,29 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called when TIM2 or TIM6 interrupt took place,
+  *         inside HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick()
+  *         to increment a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
 
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM2){
+    TIM2_time_s++;  // 时间戳秒计数器递增
+  }
+  /* USER CODE END Callback 1 */
+}
 /* USER CODE END 4 */
 
 /**

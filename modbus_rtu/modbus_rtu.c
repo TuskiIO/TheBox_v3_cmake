@@ -4,9 +4,9 @@
 #include "usbd_cdc_if.h"
 
 // STM32F722: 移除FreeRTOS依赖，使用裸机实现
-// 移除section属性，F722可能不需要特殊section
-uint8_t rx_buf[RX_BUF_SIZE];
-uint8_t tx_buf[TX_BUF_SIZE];
+// 使用32位对齐，确保DMA访问正确
+__attribute__((aligned(32))) uint8_t rx_buf[RX_BUF_SIZE];
+__attribute__((aligned(32))) uint8_t tx_buf[TX_BUF_SIZE];
 uint16_t rx_size = 0;
 uint16_t sensor_0xF7_cnt = 0;
 uint8_t *sensor_UID[MAX_SENSOR_NUM];

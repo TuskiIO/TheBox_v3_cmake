@@ -17,10 +17,6 @@ static usb_recv_callback_t recv_callbacks[MAX_RECV_CALLBACKS];
 static int registered_callback_cnt = 0;
 static uint8_t response_buffer[1024];  // 响应数据缓冲区
 
-// USB端口选择配置：设置为1使用HS，设置为0使用FS（需与usbd_cdc_if.h和main.c中保持一致）
-#ifndef USE_USB_HS
-#define USE_USB_HS  1
-#endif
 
 /**
  * @brief 初始化USB通信模块
