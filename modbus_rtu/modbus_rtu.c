@@ -32,6 +32,7 @@ void delay_us(uint16_t us) {
  * @retval -1   timeout_ms时间内未收到RS485_RX_flag == 1
  */
 static int RS485_RX_flag_Acquire(uint32_t timeout_ms){
+    RS485_RX_flag = 0;
     uint32_t start = HAL_GetTick();
     while (RS485_RX_flag == 0) {
         if((uint32_t)(HAL_GetTick() - start) > timeout_ms){
@@ -77,7 +78,6 @@ HAL_StatusTypeDef Modbus_Master_SendReceive(uint8_t *tx_frame, uint16_t txLen, u
 {   
     // 停止当前接收，准备发送
     HAL_UART_AbortReceive(&huart4);
-    RS485_RX_flag = 0;
     memcpy(tx_buf, tx_frame, txLen);
 
     // DMA 发送
@@ -230,12 +230,16 @@ HAL_StatusTypeDef Modbus_CMD61_BroadcastReportUID(uint8_t UID8_lower, uint8_t UI
         }
     }
     #if RX485_TX_USE_DMA
-    // 使用HAL_UART_Abort停止DMA并重置状态（需要UART4中断支持）
-    HAL_UART_Abort(&huart4);
-
+    // 停止当前接收，准备发送
+    HAL_UART_AbortReceive(&huart4);
     memcpy(tx_buf, txFrame, txLen);
-    // STM32F722没有D-Cache，不需要刷新
+    // DMA 发送
     HAL_UART_Transmit_DMA(&huart4, tx_buf, txLen);
+    // 等待发送完成
+    while(__HAL_UART_GET_FLAG(&huart4, UART_FLAG_TC) == RESET);
+    // 立即重启DMA接收，准备接收响应帧
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, rx_buf, RX_BUF_SIZE);
+    __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
     #else
     HAL_UART_Transmit(&huart4, txFrame, txLen, 100);
     #endif
