@@ -1,7 +1,0 @@
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/CMakeFiles/TheBox_V3_0.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/CMakeFiles/edit_cache.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/CMakeFiles/rebuild_cache.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/cmake/stm32cubemx/CMakeFiles/USB_Device_Library.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
-D:/CARTIN/16_MagSensor_v3_Software/TheBox_v3_cmake/build/RelWithDebInfo/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir

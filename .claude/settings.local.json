@@ -39,7 +39,10 @@
       "Bash(export PATH:*)",
       "Bash(arm-none-eabi-gcc:*)",
       "Bash(cmd /c \"echo %STM32CLT_PATH%\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git config:*)",
+      "Bash(git rm:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

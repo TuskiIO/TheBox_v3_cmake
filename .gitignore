@@ -1,13 +1,36 @@
 # ============================================
-# 编译输出目录
+# 编译输出 - 保留烧录文件
 # ============================================
-build/
+# 忽略中间文件
+build/**/*.o
+build/**/*.obj
+build/**/*.a
+build/**/*.lib
+
+# 忽略 CMake 配置和缓存（避免不同PC路径冲突）
+build/**/CMakeCache.txt
+build/**/CMakeFiles/
+build/**/cmake_install.cmake
+build/**/.cmake/
+build/**/.cache/
+build/**/.ninja_*
+build/**/build.ninja
+build/**/rules.ninja
+build/**/compile_commands.json
+
+# 保留烧录和调试文件
+!build/**/*.elf
+!build/**/*.hex
+!build/**/*.bin
+!build/**/*.map
+
+# ============================================
+# 本地编译输出（根目录）
+# ============================================
 *.o
 *.obj
-*.elf
-*.hex
-*.bin
-*.map
+*.a
+*.lib
 *.exe
 *.out
 
@@ -35,18 +58,6 @@ TheBox_V3_0.ioc.bak
 .vscode/settings.json.local
 .vscode/tasks.json.local
 .vscode/launch.json.local
-
-# ============================================
-# CMake
-# ============================================
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-Makefile
-*.cmake
-!CMakeLists.txt
-!cmake/gcc-arm-none-eabi.cmake
-!cmake/stm32cubemx/CMakeLists.txt
 
 # ============================================
 # Claude Code
@@ -77,3 +88,4 @@ Desktop.ini
 *.bak
 *.backup
 *~
+.claude/settings.local.json
